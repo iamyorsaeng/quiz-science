@@ -17,11 +17,14 @@
     button { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
     #submitBtn { background:#28a745; color:white; }
     #resetBtn { background:#ccc; }
+    #generateCertBtn { background:#2196F3; color:white; display:none; }
     #retryBtn { display:none; background:#ff9800; color:white; }
     #logoutBtn { display:none; background:#f44336; color:white; }
     .result { margin-top: 10px; padding: 10px; border-radius: 8px; }
     .result.fail { background: #ffe6e6; color: #b00020; }
     .result.pass { background: #e6ffe6; color: #0a7b35; }
+    #certificateBox { text-align:center; margin-top:20px; }
+    input[type="text"], input[type="email"] { padding: 6px; width: 100%; max-width: 300px; border-radius: 6px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
@@ -30,10 +33,6 @@
     <p>ทำแบบทดสอบให้ครบ 20 ข้อ เกณฑ์ผ่าน 80% (16 ข้อ) จะได้รับเกียรติบัตร</p>
   </header>
   <main>
-    <div class="card">
-      <label>ชื่อนักเรียน: <input id="studentName" type="text" required></label><br><br>
-      <label>อีเมล (ถ้ามี): <input id="studentEmail" type="email"></label>
-    </div>
     <form class="card" id="quizForm">
       <div id="questions"></div>
       <button type="button" id="submitBtn">ส่งคำตอบ</button>
@@ -41,9 +40,18 @@
       <button type="button" id="retryBtn">ทำแบบทดสอบใหม่</button>
       <button type="button" id="logoutBtn">ออกจากระบบ</button>
       <div id="resultBox" class="result"></div>
-      <div id="certificateBox" style="text-align:center; margin-top:20px;"></div>
     </form>
+
+    <!-- กรอกชื่อเพื่อรับเกียรติบัตร -->
+    <div class="card" id="nameSection" style="display:none;">
+      <h3>กรอกชื่อเพื่อรับเกียรติบัตร</h3>
+      <input type="text" id="studentName" placeholder="ชื่อ–สกุล"><br>
+      <button id="generateCertBtn">สร้างเกียรติบัตร</button>
+    </div>
+
+    <div id="certificateBox"></div>
   </main>
+
   <script>
     const bank = [
       { q: "1) วันวิทยาศาสตร์แห่งชาติของประเทศไทยตรงกับวันที่เท่าไรของทุกปี", choices: ["ก. 16 สิงหาคม","ข. 28 สิงหาคม","ค. 18 กันยายน","ง. 18 สิงหาคม"], ans: "ง" },
@@ -86,12 +94,12 @@
     const resultBox = document.getElementById("resultBox");
     const retryBtn = document.getElementById("retryBtn");
     const logoutBtn = document.getElementById("logoutBtn");
+    const nameSection = document.getElementById("nameSection");
+    const generateCertBtn = document.getElementById("generateCertBtn");
+    const certificateBox = document.getElementById("certificateBox");
     const PASS_PERCENT = 80;
 
     submitBtn.addEventListener("click", () => {
-      const name = (document.getElementById("studentName").value || "").trim();
-      if (!name) { alert("กรุณากรอกชื่อ"); return; }
-
       let correct = 0;
       bank.forEach((item, idx) => {
         const chosen = (document.querySelector(`input[name=q${idx+1}]:checked`)||{}).value;
@@ -102,31 +110,7 @@
       if (percent >= PASS_PERCENT) {
         resultBox.className="result pass";
         resultBox.innerHTML=`ผ่าน! ได้ ${correct}/${bank.length} (${percent}%)`;
-
-        // สร้างเกียรติบัตร (ชื่ออย่างเดียว)
-        const canvas = document.createElement("canvas");
-        canvas.width = 1200;
-        canvas.height = 850;
-        const ctx = canvas.getContext("2d");
-
-        const img = new Image();
-        img.src = "certificate_bg.png";
-        img.onload = function() {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-          // ชื่อผู้เรียน (กลางช่องสีน้ำเงิน)
-          ctx.font = "bold 48px sans-serif";
-          ctx.fillStyle = "#ffffff";
-          ctx.textAlign = "center";
-          ctx.fillText(name, canvas.width/2, 420);
-
-          const certBox = document.getElementById("certificateBox");
-          certBox.innerHTML = "";
-          certBox.appendChild(canvas);
-          const p = document.createElement("p");
-          p.innerText = "📌 คลิกขวาที่ภาพด้านบนเพื่อบันทึกเกียรติบัตร";
-          certBox.appendChild(p);
-        };
+        nameSection.style.display = "block";
       } else {
         resultBox.className="result fail";
         resultBox.innerHTML=`ไม่ผ่าน ได้ ${correct}/${bank.length} (${percent}%)`;
@@ -136,11 +120,49 @@
       logoutBtn.style.display="inline-block";
     });
 
+    generateCertBtn.addEventListener("click", () => {
+      const name = (document.getElementById("studentName").value || "").trim();
+      if(!name) return alert("กรุณากรอกชื่อ–สกุล");
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 1200;
+      canvas.height = 850;
+      const ctx = canvas.getContext("2d");
+
+      const img = new Image();
+      img.src = "certificate_bg.png"; // ต้องมีไฟล์นี้ใน repo
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // ชื่อผู้เรียน
+        ctx.font = "bold 48px sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.fillText(name, canvas.width/2, 420);
+
+        certificateBox.innerHTML = "";
+        certificateBox.appendChild(canvas);
+
+        // ปุ่มดาวน์โหลด
+        const downloadBtn = document.createElement("button");
+        downloadBtn.innerText = "ดาวน์โหลดเกียรติบัตร";
+        downloadBtn.style.marginTop = "10px";
+        downloadBtn.onclick = () => {
+          const link = document.createElement("a");
+          link.download = "certificate.png";
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        };
+        certificateBox.appendChild(downloadBtn);
+      };
+    });
+
     resetBtn.addEventListener("click", ()=>{ 
       resultBox.innerHTML=""; 
       retryBtn.style.display="none";
       logoutBtn.style.display="none";
-      document.getElementById("certificateBox").innerHTML = "";
+      nameSection.style.display="none";
+      certificateBox.innerHTML = "";
     });
 
     retryBtn.addEventListener("click", () => {
@@ -148,7 +170,8 @@
       resultBox.innerHTML = "";
       retryBtn.style.display = "none";
       logoutBtn.style.display = "none";
-      document.getElementById("certificateBox").innerHTML = "";
+      nameSection.style.display="none";
+      certificateBox.innerHTML = "";
     });
 
     logoutBtn.addEventListener("click", () => {
