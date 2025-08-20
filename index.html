@@ -33,6 +33,7 @@
     <p>ทำแบบทดสอบให้ครบ 20 ข้อ เกณฑ์ผ่าน 80% (16 ข้อ) จะได้รับเกียรติบัตร</p>
   </header>
   <main>
+    <!-- แบบทดสอบ -->
     <form class="card" id="quizForm">
       <div id="questions"></div>
       <button type="button" id="submitBtn">ส่งคำตอบ</button>
@@ -49,7 +50,11 @@
       <button id="generateCertBtn">สร้างเกียรติบัตร</button>
     </div>
 
-    <div id="certificateBox"></div>
+    <!-- เกียรติบัตร + ปุ่มดาวน์โหลด -->
+    <div id="certificateBox" class="card">
+      <canvas id="certCanvas" width="1200" height="850" style="border:1px solid #ccc;"></canvas><br>
+      <button id="downloadBtn" style="display:none; background:#4caf50; color:white;">ดาวน์โหลดเกียรติบัตร</button>
+    </div>
   </main>
 
   <script>
@@ -96,7 +101,9 @@
     const logoutBtn = document.getElementById("logoutBtn");
     const nameSection = document.getElementById("nameSection");
     const generateCertBtn = document.getElementById("generateCertBtn");
-    const certificateBox = document.getElementById("certificateBox");
+    const canvas = document.getElementById("certCanvas");
+    const ctx = canvas.getContext("2d");
+    const downloadBtn = document.getElementById("downloadBtn");
     const PASS_PERCENT = 80;
 
     submitBtn.addEventListener("click", () => {
@@ -110,6 +117,7 @@
       if (percent >= PASS_PERCENT) {
         resultBox.className="result pass";
         resultBox.innerHTML=`ผ่าน! ได้ ${correct}/${bank.length} (${percent}%)`;
+
         nameSection.style.display = "block";
       } else {
         resultBox.className="result fail";
@@ -121,48 +129,38 @@
     });
 
     generateCertBtn.addEventListener("click", () => {
-      const name = (document.getElementById("studentName").value || "").trim();
-      if(!name) return alert("กรุณากรอกชื่อ–สกุล");
-
-      const canvas = document.createElement("canvas");
-      canvas.width = 1200;
-      canvas.height = 850;
-      const ctx = canvas.getContext("2d");
+      const name = document.getElementById("studentName").value.trim();
+      if(!name) { alert("กรุณากรอกชื่อ–สกุล"); return; }
 
       const img = new Image();
-      img.src = "certificate_bg.png"; // ต้องมีไฟล์นี้ใน repo
+      img.src = "certificate_bg.png";
       img.onload = function() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // ชื่อผู้เรียน
-        ctx.font = "bold 48px sans-serif";
+        ctx.font = "bold 60px 'Noto Sans Thai', sans-serif";
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.fillText(name, canvas.width/2, 420);
 
-        certificateBox.innerHTML = "";
-        certificateBox.appendChild(canvas);
-
-        // ปุ่มดาวน์โหลด
-        const downloadBtn = document.createElement("button");
-        downloadBtn.innerText = "ดาวน์โหลดเกียรติบัตร";
-        downloadBtn.style.marginTop = "10px";
-        downloadBtn.onclick = () => {
-          const link = document.createElement("a");
-          link.download = "certificate.png";
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        };
-        certificateBox.appendChild(downloadBtn);
+        downloadBtn.style.display = "inline-block";
       };
     });
 
-    resetBtn.addEventListener("click", ()=>{ 
+    downloadBtn.addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "certificate.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    resetBtn.addEventListener("click", ()=>{
       resultBox.innerHTML=""; 
       retryBtn.style.display="none";
       logoutBtn.style.display="none";
       nameSection.style.display="none";
-      certificateBox.innerHTML = "";
+      downloadBtn.style.display="none";
+      ctx.clearRect(0,0,canvas.width,canvas.height);
     });
 
     retryBtn.addEventListener("click", () => {
@@ -171,7 +169,8 @@
       retryBtn.style.display = "none";
       logoutBtn.style.display = "none";
       nameSection.style.display="none";
-      certificateBox.innerHTML = "";
+      downloadBtn.style.display="none";
+      ctx.clearRect(0,0,canvas.width,canvas.height);
     });
 
     logoutBtn.addEventListener("click", () => {
